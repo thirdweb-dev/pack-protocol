@@ -25,18 +25,33 @@ let testPrivateKey: string = process.env.TEST_PRIVATE_KEY || "";
 let alchemyKey: string = process.env.ALCHEMY_KEY || "";
 let etherscanKey: string = process.env.ETHERSCAN_API_KEY || "";
 let polygonscanKey: string = process.env.POLYGONSCAN_API_KEY || "";
+let infuraKey: string = process.env.INFURA_KEY || "";
 
 function createTestnetConfig(network: keyof typeof chainIds): NetworkUserConfig {
-  if (!alchemyKey) {
-    throw new Error("Missing ALCHEMY_KEY");
+  
+  // if not using infura there better be an alchemy key or else fail
+  if(!infuraKey) {
+    if (!alchemyKey) {
+      throw new Error("Either ALCHEMY_KEY or INFURA_KEY must be defined");
+    }
   }
 
   const polygonNetworkName = network === "polygon" ? "mainnet" : "mumbai";
 
-  let nodeUrl =
-    chainIds[network] == 137 || chainIds[network] == 80001
-      ? `https://polygon-${polygonNetworkName}.g.alchemy.com/v2/${alchemyKey}`
-      : `https://eth-${network}.alchemyapi.io/v2/${alchemyKey}`;
+  let nodeUrl;
+
+  // if polygon network then use appropriate alchemy/infura URL
+    if(chainIds[network] == 137 || chainIds[network] == 80001) {
+      if(alchemyKey) {
+        nodeUrl = `https://polygon-${polygonNetworkName}.g.alchemy.com/v2/${alchemyKey}`;
+      } else if(infuraKey){
+        nodeUrl = `https://polygon-${polygonNetworkName}.infura.io/v3/${infuraKey}`;
+      }
+    } else if(alchemyKey) {
+      nodeUrl = `https://eth-${network}.alchemyapi.io/v2/${alchemyKey}`;
+    } else if(infuraKey){ 
+      nodeUrl = `https://${network}.infura.io/v3/${infuraKey}`
+    };
 
   return {
     chainId: chainIds[network],
